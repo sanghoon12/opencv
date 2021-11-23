@@ -61,7 +61,8 @@ class HeadPoseSolver:
         self.distortion_coeffs = np.array(D).reshape(5, 1).astype(np.float32)
 
     def solve_head_pose(self, face_landmarks):
-        indices = [46, 55, 240, 460, 263, 362, 33, 133, 285, 276]
+        #[46, 55, 285, 276, 33, 133, 362, 263, 240, 460]
+        indices = [46, 55, 285, 276, 33, 133, 362, 263, 240, 460]
         image_pts = np.zeros((len(indices), 2))
         for i in range(len(indices)):
             part = face_landmarks.part(indices[i])

@@ -1,48 +1,64 @@
-from flask import Flask
-from flask import request
-from flask import Response
-from flask import stream_with_context
-from flask import render_template
-from streamer import Streamer
+from flask import Flask, render_template, Response, jsonify, request
+from flask.helpers import send_file
+from camera import VideoCamera
 
-app = Flask( __name__ )
-streamer = Streamer()
+app = Flask(__name__)
+
+video_camera = None
+global_frame = None
 
 @app.route('/')
-def hello():
-    return render_template('index.html', a = 'opencv')
+def index():
+    return render_template('index.html')
 
-@app.route('/stream')
-def stream():
-    
-    src = request.args.get( 'src', default = 0, type = int )
-    
-    try :
-        
-        return Response(
-                                stream_with_context( stream_gen( src ) ),
-                                mimetype='multipart/x-mixed-replace; boundary=frame' )
-        
-    except Exception as e :
-        
-        print('[wandlab] ', 'stream error : ',str(e))
+@app.route('/record_status', methods=['POST'])
+def record_status():
+    global video_camera 
+    if video_camera == None:
+        video_camera = VideoCamera()
 
-def stream_gen( src ):   
-  
-    try : 
+    json = request.get_json()
+
+    status = json['status']
+
+    if status == "true":
+        video_camera.start_record()
+        return jsonify(result="started")
+    else:
+        video_camera.stop_record()
+        return jsonify(result="stopped")
+
+
+def video_stream():
+    global video_camera 
+    global global_frame
+
+    if video_camera == None:
+        video_camera = VideoCamera()
         
-        streamer.run( src )
-        
-        while True :
-            
-            frame = streamer.bytescode()
+    while True:
+        frame = video_camera.get_tonify_frame()
+
+        if frame != None:
+            global_frame = frame
             yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-                    
-    except GeneratorExit :
-        #print( '[wandlab]', 'disconnected stream' )
-        streamer.stop()
+                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+        else:
+            yield (b'--frame\r\n'
+                            b'Content-Type: image/jpeg\r\n\r\n' + global_frame + b'\r\n\r\n')
+
+@app.route('/video_viewer')
+def video_viewer():
+    return Response(video_stream(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
-if(__name__=='__main__'):
-    app.run()
+@app.route('/download_video')
+def download_video():
+    file_name = f'./static/video.avi'
+    return send_file(file_name, mimetype='video/avi', as_attachment=True)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', threaded=True)
+
+#http://localhost:5000/

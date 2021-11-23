@@ -1,11 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Hello</title>
+  <title>Streaming Video Recorder</title>
 </head>
 <body>
-    <h1>안녕하세요</h1>
-    <h1>{{a}}</h1>
+  <h1>Streaming Video Recorder</h1>
+  <div id="recorder">
+    <button id="record">Record</button>
+    <button id="stop">Stop</button>
+    <a id="download"></a>
+    <script type="text/javascript" src="{{ url_for('static', filename='recorder.js') }}"></script>      
+  </div>
+  <img id="video" src="{{ url_for('video_viewer') }}">
 </body>
 </html>
